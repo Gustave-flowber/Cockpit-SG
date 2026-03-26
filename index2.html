@@ -1,0 +1,1755 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Cockpit Service</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0f0f0f">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --bg2: #1a1a1a;
+    --bg3: #242424;
+    --border: rgba(255,255,255,0.08);
+    --text: #f0ede8;
+    --muted: #7a7672;
+    --accent: #c8a96e;
+    --accent2: #7eb8a4;
+    --danger: #d96b5a;
+    --warn: #d4955a;
+    --ok: #7eb8a4;
+    --tag-rh: #7b6fa0;
+    --tag-fi: #5a8fa0;
+    --tag-ri: #7ea06e;
+    --tag-co: #a07e6e;
+    --tag-ac: #a09e5a;
+    --tag-im: #8a6ea0;
+    --tag-au: #6e8aa0;
+    --tag-pe: #a06e8a;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  /* HEADER */
+  .header {
+    padding: 52px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 100;
+  }
+  .header-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  .header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--accent);
+    letter-spacing: -0.3px;
+  }
+  .date-label {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* NAV TABS */
+  .nav {
+    display: flex;
+    gap: 0;
+    padding: 12px 20px 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    position: sticky;
+    top: 73px;
+    z-index: 99;
+  }
+  .nav-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    padding: 8px 16px 10px;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.2s;
+    letter-spacing: 0.02em;
+  }
+  .nav-btn.active {
+    color: var(--text);
+    font-weight: 500;
+  }
+  .nav-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 16px;
+    right: 16px;
+    height: 2px;
+    background: var(--accent);
+    border-radius: 2px 2px 0 0;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--danger);
+    color: #fff;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 500;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    margin-left: 5px;
+    vertical-align: middle;
+  }
+
+  /* SCREENS */
+  .screen { display: none; padding: 16px 20px 100px; }
+  .screen.active { display: block; }
+
+  /* SECTION TITLE */
+  .section-title {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 20px 0 10px;
+  }
+  .section-title:first-child { margin-top: 4px; }
+
+  /* DOSSIER CARD */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+  }
+  .card:active { background: var(--bg3); }
+  .card.urgent { border-left: 3px solid var(--danger); }
+  .card.warn { border-left: 3px solid var(--warn); }
+  .card.ok { border-left: 3px solid var(--ok); }
+
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .card-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.3;
+    flex: 1;
+  }
+  .priority-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+  .priority-dot.strategique { background: var(--danger); }
+  .priority-dot.operationnel { background: var(--warn); }
+  .priority-dot.administratif { background: var(--muted); }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .tag {
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+  .tag.RH { background: rgba(123,111,160,0.2); color: var(--tag-rh); }
+  .tag.Finances { background: rgba(90,143,160,0.2); color: var(--tag-fi); }
+  .tag.RI { background: rgba(126,160,110,0.2); color: var(--tag-ri); }
+  .tag.Communication { background: rgba(160,126,110,0.2); color: var(--tag-co); }
+  .tag.Achats { background: rgba(160,158,90,0.2); color: var(--tag-ac); }
+  .tag.Immobilier { background: rgba(138,110,160,0.2); color: var(--tag-im); }
+  .tag.Autre { background: rgba(110,138,160,0.2); color: var(--tag-au); }
+  .tag.Personnel { background: rgba(160,110,138,0.2); color: var(--tag-pe); }
+
+  /* CHECKUP */
+  .checkup-week {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  .checkup-week-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 16px;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .checkup-week-dates {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 14px;
+    letter-spacing: 0.03em;
+  }
+  .checkup-progress {
+    height: 3px;
+    background: var(--bg3);
+    border-radius: 2px;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  .checkup-progress-bar {
+    height: 100%;
+    background: var(--ok);
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+  .checkup-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .checkup-item:last-child { border-bottom: none; }
+  .checkup-check {
+    width: 20px; height: 20px;
+    border: 1.5px solid var(--muted);
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .checkup-check.done {
+    background: var(--ok);
+    border-color: var(--ok);
+  }
+  .checkup-check.done::after {
+    content: '';
+    width: 6px; height: 4px;
+    border-left: 1.5px solid #0f0f0f;
+    border-bottom: 1.5px solid #0f0f0f;
+    transform: rotate(-45deg) translateY(-1px);
+    display: block;
+  }
+  .checkup-label {
+    font-size: 14px;
+    color: var(--text);
+    flex: 1;
+    transition: color 0.15s;
+  }
+  .checkup-label.done { color: var(--muted); text-decoration: line-through; }
+  .checkup-remove {
+    background: none; border: none; color: var(--muted);
+    font-size: 16px; cursor: pointer; padding: 0 0 0 4px;
+    opacity: 0; transition: opacity 0.15s;
+  }
+  .checkup-item:hover .checkup-remove { opacity: 1; }
+  .checkup-item:active .checkup-remove { opacity: 1; }
+  .checkup-available {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 8px;
+  }
+  .checkup-toggle {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .checkup-toggle:last-child { border-bottom: none; }
+  .checkup-toggle-box {
+    width: 18px; height: 18px;
+    border: 1.5px solid var(--muted);
+    border-radius: 4px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .checkup-toggle-box.active {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .checkup-toggle-box.active::after {
+    content: '';
+    width: 6px; height: 4px;
+    border-left: 1.5px solid #0f0f0f;
+    border-bottom: 1.5px solid #0f0f0f;
+    transform: rotate(-45deg) translateY(-1px);
+    display: block;
+  }
+  .checkup-add-form {
+    display: flex; gap: 8px; margin-top: 12px;
+  }
+  .checkup-add-form input {
+    flex: 1;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 8px 10px;
+    outline: none;
+  }
+  .checkup-add-form input:focus { border-color: var(--accent); }
+  .btn-sm {
+    background: var(--accent);
+    color: #0f0f0f;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 8px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .collapsible-header {
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; padding: 2px 0 10px;
+  }
+  .collapsible-arrow {
+    font-size: 12px; color: var(--muted);
+    transition: transform 0.2s;
+  }
+  .collapsible-arrow.open { transform: rotate(180deg); }
+  .collapsible-body { overflow: hidden; transition: max-height 0.25s; }
+
+  /* COMMANDES */
+  .cmd-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .cmd-card:active { background: var(--bg3); }
+  .cmd-card.fait { border-left: 3px solid var(--ok); opacity: 0.6; }
+  .cmd-card.en-cours { border-left: 3px solid var(--accent); }
+  .cmd-card.en-attente { border-left: 3px solid var(--muted); }
+  .cmd-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+  .cmd-titre { font-size: 14px; font-weight: 500; color: var(--text); flex: 1; line-height: 1.3; }
+  .cmd-statut {
+    font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 4px; font-weight: 500; flex-shrink: 0; margin-top: 2px;
+  }
+  .cmd-statut.fait { background: rgba(126,184,164,0.2); color: var(--ok); }
+  .cmd-statut.en-cours { background: rgba(200,169,110,0.2); color: var(--accent); }
+  .cmd-statut.en-attente { background: rgba(122,118,114,0.2); color: var(--muted); }
+  .cmd-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .cmd-agent { font-size: 11px; font-weight: 500; color: var(--accent2); }
+  .cmd-date { font-size: 11px; color: var(--muted); }
+  .cmd-date.late { color: var(--danger); font-weight: 500; }
+  .cmd-dossier { font-size: 11px; color: var(--muted); font-style: italic; }
+
+  .echeance {
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .echeance.late { color: var(--danger); font-weight: 500; }
+  .echeance.soon { color: var(--warn); }
+
+  .action-line {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid var(--border);
+    font-style: italic;
+  }
+  .action-line strong { color: var(--accent); font-style: normal; font-weight: 400; }
+
+  /* EMPTY STATE */
+  .empty {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.8;
+  }
+  .empty-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+    opacity: 0.4;
+  }
+
+  /* STATS BAR */
+  .stats-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .stat {
+    flex: 1;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    text-align: center;
+  }
+  .stat-num {
+    font-family: 'DM Serif Display', serif;
+    font-size: 24px;
+    color: var(--accent);
+    line-height: 1;
+    display: block;
+  }
+  .stat-label {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-top: 3px;
+    display: block;
+  }
+
+  /* FORM */
+  .form-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+  }
+  .form-group {
+    margin-bottom: 14px;
+  }
+  .form-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+    display: block;
+  }
+  .form-input, .form-select, .form-textarea {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.15s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus {
+    border-color: var(--accent);
+  }
+  .form-textarea { resize: vertical; min-height: 72px; }
+  .form-select option { background: #1a1a1a; }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .btn-primary {
+    width: 100%;
+    background: var(--accent);
+    color: #0f0f0f;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 13px;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    transition: opacity 0.15s;
+    margin-top: 4px;
+  }
+  .btn-primary:active { opacity: 0.8; }
+
+  /* JOURNAL */
+  .journal-entry {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 8px;
+  }
+  .journal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+  }
+  .journal-dossier {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent);
+  }
+  .journal-date {
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .journal-text {
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.55;
+  }
+  .journal-delete {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 0 0 8px;
+    line-height: 1;
+    float: right;
+    margin-top: -2px;
+  }
+  .journal-delete:active { color: var(--danger); }
+
+  /* MODAL */
+  .modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 20px 20px 40px;
+    width: 100%;
+    max-width: 480px;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+  .modal-handle {
+    width: 36px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+  .modal-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    font-weight: 400;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .modal-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-section { margin-bottom: 12px; }
+  .modal-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .modal-value {
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+  .btn-secondary {
+    flex: 1;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 10px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .btn-secondary:active { border-color: var(--accent); }
+  .btn-danger {
+    flex: 1;
+    background: none;
+    border: 1px solid rgba(217,107,90,0.3);
+    border-radius: var(--radius-sm);
+    color: var(--danger);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    padding: 10px;
+    cursor: pointer;
+  }
+  .btn-danger:active { background: rgba(217,107,90,0.1); }
+
+  /* JOURNAL FORM */
+  .journal-form {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  /* FAB */
+  .fab {
+    position: fixed;
+    bottom: 28px;
+    right: 20px;
+    width: 52px;
+    height: 52px;
+    background: var(--accent);
+    border: none;
+    border-radius: 50%;
+    color: #0f0f0f;
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(200,169,110,0.3);
+    transition: transform 0.15s;
+    z-index: 150;
+  }
+  .fab:active { transform: scale(0.92); }
+
+  /* JALONS */
+  .timeline-year {
+    position: relative;
+    padding-left: 28px;
+  }
+  .timeline-axis {
+    position: absolute;
+    left: 10px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--border);
+  }
+  .timeline-month {
+    margin-bottom: 4px;
+  }
+  .month-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+    position: relative;
+  }
+  .month-dot {
+    position: absolute;
+    left: -23px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--bg3);
+    border: 1px solid var(--muted);
+    flex-shrink: 0;
+  }
+  .month-dot.has-jalons {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .month-dot.current {
+    background: var(--ok);
+    border-color: var(--ok);
+    box-shadow: 0 0 0 3px rgba(126,184,164,0.2);
+  }
+  .month-label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .month-label.current { color: var(--ok); }
+  .jalon-item {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .jalon-item:active { border-color: var(--accent); }
+  .jalon-cat {
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .jalon-cat.Budget { background: rgba(90,143,160,0.2); color: var(--tag-fi); }
+  .jalon-cat.RH { background: rgba(123,111,160,0.2); color: var(--tag-rh); }
+  .jalon-cat.Autre { background: rgba(110,138,160,0.2); color: var(--tag-au); }
+  .jalon-type {
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 500;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .jalon-type.echeance {
+    background: rgba(217,107,90,0.15);
+    color: var(--danger);
+    border: 1px solid rgba(217,107,90,0.3);
+  }
+  .jalon-type.revoir {
+    background: rgba(126,184,164,0.15);
+    color: var(--ok);
+    border: 1px solid rgba(126,184,164,0.3);
+  }
+  .jalon-item.echeance { border-left: 3px solid rgba(217,107,90,0.5); }
+  .jalon-item.revoir { border-left: 3px solid rgba(126,184,164,0.5); }
+  .jalon-content { flex: 1; }
+  .jalon-titre { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.3; }
+  .jalon-date { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .jalon-delete {
+    background: none; border: none; color: var(--muted);
+    font-size: 16px; cursor: pointer; padding: 0; line-height: 1;
+  }
+  .jalon-delete:active { color: var(--danger); }
+  .jalon-form {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .year-selector {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .year-nav {
+    background: none; border: 1px solid var(--border);
+    border-radius: var(--radius-sm); color: var(--text);
+    font-size: 18px; width: 36px; height: 36px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .year-nav:active { border-color: var(--accent); }
+  .year-display {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px; color: var(--accent);
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <h1>Cockpit Service</h1>
+    <span class="date-label" id="date-label"></span>
+  </div>
+</div>
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="showScreen('dashboard')" id="tab-dashboard">
+    Tableau de bord <span class="badge" id="badge-urgences" style="display:none"></span>
+  </button>
+  <button class="nav-btn" onclick="showScreen('commandes')" id="tab-commandes">Commandes <span class="badge" id="badge-commandes" style="display:none"></span></button>
+  <button class="nav-btn" onclick="showScreen('ajout')" id="tab-ajout">Ajouter</button>
+  <button class="nav-btn" onclick="showScreen('journal')" id="tab-journal">Journal</button>
+  <button class="nav-btn" onclick="showScreen('jalons')" id="tab-jalons">Jalons</button>
+  <button class="nav-btn" onclick="showScreen('checkup')" id="tab-checkup">Check-up</button>
+</nav>
+
+<!-- DASHBOARD -->
+<div class="screen active" id="screen-dashboard">
+  <div class="stats-bar">
+    <div class="stat">
+      <span class="stat-num" id="stat-total">0</span>
+      <span class="stat-label">Dossiers</span>
+    </div>
+    <div class="stat">
+      <span class="stat-num" id="stat-urgents" style="color:var(--danger)">0</span>
+      <span class="stat-label">Urgents</span>
+    </div>
+    <div class="stat">
+      <span class="stat-num" id="stat-retard" style="color:var(--warn)">0</span>
+      <span class="stat-label">En retard</span>
+    </div>
+  </div>
+
+  <p class="section-title">Urgences & retards</p>
+  <div id="list-urgences"></div>
+
+  <p class="section-title">Autres dossiers en cours</p>
+  <div id="list-autres"></div>
+</div>
+
+<!-- AJOUT -->
+<div class="screen" id="screen-ajout">
+  <div class="form-card">
+    <div class="form-group">
+      <label class="form-label">Intitulé du dossier *</label>
+      <input class="form-input" id="f-titre" type="text" placeholder="Ex. Recrutement poste RH">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Domaine</label>
+        <select class="form-select" id="f-domaine">
+          <option value="RH">RH</option>
+          <option value="Finances">Finances</option>
+          <option value="RI">Relations int.</option>
+          <option value="Communication">Communication</option>
+          <option value="Achats">Achats</option>
+          <option value="Immobilier">Immobilier</option>
+          <option value="Personnel">Personnel</option>
+          <option value="Autre">Autre</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Enjeu</label>
+        <select class="form-select" id="f-priorite">
+          <option value="strategique">Stratégique</option>
+          <option value="operationnel" selected>Opérationnel</option>
+          <option value="administratif">Administratif</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Statut</label>
+        <select class="form-select" id="f-statut">
+          <option value="En cours">En cours</option>
+          <option value="En attente">En attente</option>
+          <option value="Clôturé">Clôturé</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Échéance</label>
+        <input class="form-input" id="f-echeance" type="date">
+      </div>
+    </div>
+    <label style="display:flex;align-items:center;gap:10px;padding:10px 0;cursor:pointer;border-top:1px solid var(--border);margin-bottom:4px">
+      <div id="urgent-box" style="width:20px;height:20px;border:1.5px solid var(--muted);border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.15s" onclick="toggleUrgent()"></div>
+      <span style="font-size:13px;color:var(--text)">Marquer comme urgent</span>
+      <span style="font-size:11px;color:var(--muted);margin-left:auto">indépendant de l'enjeu</span>
+    </label>
+    <input type="hidden" id="f-urgent" value="0">
+    <div class="form-group">
+      <label class="form-label">Ma prochaine action</label>
+      <input class="form-input" id="f-action" type="text" placeholder="Ce que je dois faire">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Responsable domaine</label>
+      <input class="form-input" id="f-resp" type="text" placeholder="Nom du référent">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Notes</label>
+      <textarea class="form-textarea" id="f-notes" placeholder="Contexte, historique…"></textarea>
+    </div>
+    <button class="btn-primary" onclick="saveDossier()">Enregistrer le dossier</button>
+  </div>
+</div>
+
+<!-- JOURNAL -->
+<div class="screen" id="screen-journal">
+  <div class="journal-form">
+    <div class="form-group">
+      <label class="form-label">Dossier concerné</label>
+      <select class="form-select" id="j-dossier">
+        <option value="">— Choisir un dossier —</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Décision / note</label>
+      <textarea class="form-textarea" id="j-texte" placeholder="Ex. Arbitrage rendu : report de 3 semaines. Informer responsable RH."></textarea>
+    </div>
+    <button class="btn-primary" onclick="saveJournal()">Ajouter au journal</button>
+  </div>
+
+  <p class="section-title">Historique</p>
+  <div id="list-journal"></div>
+</div>
+
+<!-- JALONS -->
+<div class="screen" id="screen-jalons">
+  <div class="jalon-form">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select class="form-select" id="jal-type">
+          <option value="echeance">Échéance obligatoire</option>
+          <option value="revoir">Point à réétudier</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Catégorie</label>
+        <select class="form-select" id="jal-cat">
+          <option value="Budget">Budget</option>
+          <option value="RH">RH</option>
+          <option value="Autre">Autre</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="grid-column:1/3">
+        <label class="form-label">Date</label>
+        <input class="form-input" id="jal-date" type="date">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Intitulé *</label>
+      <input class="form-input" id="jal-titre" type="text" placeholder="Ex. Clôture budgétaire N-1">
+    </div>
+    <button class="btn-primary" onclick="saveJalon()">Ajouter le jalon</button>
+  </div>
+
+  <div class="year-selector">
+    <button class="year-nav" onclick="changeYear(-1)">‹</button>
+    <span class="year-display" id="year-display"></span>
+    <button class="year-nav" onclick="changeYear(1)">›</button>
+  </div>
+
+  <div class="timeline-year">
+    <div class="timeline-axis"></div>
+    <div id="timeline-months"></div>
+  </div>
+</div>
+
+<!-- CHECKUP -->
+<div class="screen" id="screen-checkup">
+  <div class="checkup-week">
+    <div class="checkup-week-title">Semaine suivante</div>
+    <div class="checkup-week-dates" id="checkup-dates"></div>
+    <div class="checkup-progress"><div class="checkup-progress-bar" id="checkup-bar"></div></div>
+    <div id="checkup-list"></div>
+  </div>
+
+  <div class="checkup-available">
+    <div class="collapsible-header" onclick="toggleCollapsible('points-pool')">
+      <span class="section-title" style="margin:0">Points disponibles</span>
+      <span class="collapsible-arrow" id="arrow-points-pool">▼</span>
+    </div>
+    <div class="collapsible-body" id="points-pool" style="max-height:0">
+      <div id="pool-list"></div>
+      <div class="checkup-add-form">
+        <input type="text" id="pool-new" placeholder="Ajouter un point récurrent…">
+        <button class="btn-sm" onclick="addPoolItem()">Ajouter</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- COMMANDES -->
+<div class="screen" id="screen-commandes">
+  <div class="form-card" style="margin-bottom:16px">
+    <div class="form-group">
+      <label class="form-label">Commande *</label>
+      <input class="form-input" id="cmd-titre" type="text" placeholder="Ex. Préparer note de synthèse budget">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Agent</label>
+        <input class="form-input" id="cmd-agent" type="text" placeholder="Nom">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Statut</label>
+        <select class="form-select" id="cmd-statut">
+          <option value="en-cours">En cours</option>
+          <option value="en-attente">En attente</option>
+          <option value="fait">Fait</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Date passée</label>
+        <input class="form-input" id="cmd-date" type="date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Échéance</label>
+        <input class="form-input" id="cmd-echeance" type="date">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Dossier lié</label>
+      <select class="form-select" id="cmd-dossier">
+        <option value="">— Aucun —</option>
+      </select>
+    </div>
+    <button class="btn-primary" id="cmd-submit" onclick="saveCommande()">Enregistrer la commande</button>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:8px">
+    <button class="btn-secondary" style="flex:1;font-size:12px" onclick="filterCommandes('actives')">En cours</button>
+    <button class="btn-secondary" style="flex:1;font-size:12px" onclick="filterCommandes('toutes')">Toutes</button>
+    <button class="btn-secondary" style="flex:1;font-size:12px" onclick="filterCommandes('faites')">Faites</button>
+  </div>
+  <div style="margin-bottom:12px">
+    <select class="form-select" id="cmd-agent-filter" onchange="renderCommandes()" style="font-size:12px;padding:8px 10px">
+      <option value="">Tous les agents</option>
+    </select>
+  </div>
+
+  <div id="cmd-filter-label" class="section-title">En cours</div>
+  <div id="list-commandes"></div>
+</div>
+
+<!-- MODAL COMMANDE -->
+<div class="modal-backdrop" id="cmd-modal-backdrop" onclick="closeCmdModal(event)">
+  <div class="modal" id="cmd-modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="cmd-modal-titre"></div>
+    <div class="modal-sub" id="cmd-modal-meta"></div>
+    <div id="cmd-modal-body"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeCmdModal()">Fermer</button>
+      <button class="btn-secondary" onclick="editCmdFromModal()">Modifier</button>
+      <button class="btn-secondary" onclick="markCmdDone()">✓ Marquer fait</button>
+      <button class="btn-danger" onclick="deleteCmdFromModal()">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FICHE -->
+<div class="modal-backdrop" id="modal-backdrop" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-titre"></div>
+    <div class="modal-sub" id="modal-meta"></div>
+    <div id="modal-body"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Fermer</button>
+      <button class="btn-secondary" onclick="editFromModal()">Modifier</button>
+      <button class="btn-danger" onclick="deleteFromModal()">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let dossiers = JSON.parse(localStorage.getItem('dossiers') || '[]');
+let journal = JSON.parse(localStorage.getItem('journal') || '[]');
+let jalons = JSON.parse(localStorage.getItem('jalons') || '[]');
+let checkupPool = JSON.parse(localStorage.getItem('checkupPool') || '[]');
+let checkupWeeks = JSON.parse(localStorage.getItem('checkupWeeks') || '{}');
+let commandes = JSON.parse(localStorage.getItem('commandes') || '[]');
+let currentId = null;
+let currentCmdId = null;
+let currentYear = new Date().getFullYear();
+let cmdFilter = 'actives';
+
+function save() {
+  localStorage.setItem('dossiers', JSON.stringify(dossiers));
+  localStorage.setItem('journal', JSON.stringify(journal));
+  localStorage.setItem('jalons', JSON.stringify(jalons));
+  localStorage.setItem('checkupPool', JSON.stringify(checkupPool));
+  localStorage.setItem('checkupWeeks', JSON.stringify(checkupWeeks));
+  localStorage.setItem('commandes', JSON.stringify(commandes));
+}
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+function formatDate(d) {
+  if (!d) return '';
+  const [y,m,j] = d.split('-');
+  return j+'/'+m+'/'+y;
+}
+
+function daysUntil(d) {
+  if (!d) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const target = new Date(d);
+  return Math.round((target - today) / 86400000);
+}
+
+function echeanceLabel(d) {
+  const n = daysUntil(d);
+  if (n === null) return '';
+  if (n < 0) return { text: 'En retard de ' + Math.abs(n) + 'j', cls: 'late' };
+  if (n === 0) return { text: "Aujourd'hui", cls: 'late' };
+  if (n <= 7) return { text: 'Dans ' + n + ' j', cls: 'soon' };
+  return { text: formatDate(d), cls: '' };
+}
+
+function toggleUrgent() {
+  const box = document.getElementById('urgent-box');
+  const input = document.getElementById('f-urgent');
+  const isNow = input.value === '1';
+  input.value = isNow ? '0' : '1';
+  box.style.background = isNow ? '' : 'var(--danger)';
+  box.style.borderColor = isNow ? 'var(--muted)' : 'var(--danger)';
+  box.innerHTML = isNow ? '' : '<svg width="11" height="8" viewBox="0 0 11 8"><path d="M1 4l3 3 6-6" stroke="#0f0f0f" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+
+function setUrgentBox(val) {
+  const box = document.getElementById('urgent-box');
+  const input = document.getElementById('f-urgent');
+  input.value = val ? '1' : '0';
+  box.style.background = val ? 'var(--danger)' : '';
+  box.style.borderColor = val ? 'var(--danger)' : 'var(--muted)';
+  box.innerHTML = val ? '<svg width="11" height="8" viewBox="0 0 11 8"><path d="M1 4l3 3 6-6" stroke="#0f0f0f" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '';
+}
+
+function isUrgent(d) {
+  if (d.urgent) return true;
+  const n = daysUntil(d.echeance);
+  if (n !== null && n <= 3) return true;
+  return false;
+}
+
+function isRetard(d) {
+  const n = daysUntil(d.echeance);
+  return n !== null && n < 0;
+}
+
+function renderCard(d) {
+  const ech = echeanceLabel(d.echeance);
+  const border = isRetard(d) ? 'urgent' : (d.urgent ? 'warn' : 'ok');
+  const enjeuLabel = d.priorite === 'strategique' ? 'Stratégique' : d.priorite === 'operationnel' ? 'Opérationnel' : 'Administratif';
+  const urgentBadge = d.urgent ? `<span style="font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:2px 6px;border-radius:4px;background:rgba(217,107,90,0.2);color:var(--danger);font-weight:500">Urgent</span>` : '';
+  return `
+    <div class="card ${border}" onclick="openModal('${d.id}')">
+      <div class="card-header">
+        <span class="card-title">${d.titre}</span>
+        <span class="priority-dot ${d.priorite}"></span>
+      </div>
+      <div class="card-meta">
+        <span class="tag ${d.domaine}">${d.domaine}</span>
+        <span class="echeance" style="font-size:10px;opacity:0.7">${enjeuLabel}</span>
+        ${urgentBadge}
+        ${ech ? `<span class="echeance ${ech.cls}">${ech.text}</span>` : ''}
+        ${d.responsable ? `<span class="echeance">${d.responsable}</span>` : ''}
+      </div>
+      ${d.action ? `<div class="action-line"><strong>→</strong> ${d.action}</div>` : ''}
+    </div>`;
+}
+
+function renderDashboard() {
+  const actifs = dossiers.filter(d => d.statut !== 'Clôturé');
+  const urgents = actifs.filter(d => isUrgent(d) || isRetard(d));
+  const autres = actifs.filter(d => !isUrgent(d) && !isRetard(d));
+
+  document.getElementById('stat-total').textContent = actifs.length;
+  document.getElementById('stat-urgents').textContent = actifs.filter(d => d.urgent || isRetard(d)).length;
+  document.getElementById('stat-retard').textContent = actifs.filter(d => isRetard(d)).length;
+
+  const badge = document.getElementById('badge-urgences');
+  if (urgents.length > 0) {
+    badge.textContent = urgents.length;
+    badge.style.display = 'inline-flex';
+  } else {
+    badge.style.display = 'none';
+  }
+
+  const lu = document.getElementById('list-urgences');
+  lu.innerHTML = urgents.length
+    ? urgents.map(renderCard).join('')
+    : '<div class="empty"><div class="empty-icon">✓</div>Aucune urgence ni retard en ce moment.</div>';
+
+  const la = document.getElementById('list-autres');
+  la.innerHTML = autres.length
+    ? autres.map(renderCard).join('')
+    : '<div class="empty" style="padding:20px 0;font-size:12px">Aucun autre dossier en cours.</div>';
+}
+
+function renderJournalList() {
+  const el = document.getElementById('list-journal');
+  if (!journal.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📋</div>Aucune entrée dans le journal.</div>';
+    return;
+  }
+  el.innerHTML = [...journal].reverse().map(e => {
+    const d = dossiers.find(x => x.id === e.dossierId);
+    return `
+      <div class="journal-entry">
+        <div class="journal-header">
+          <span class="journal-dossier">${d ? d.titre : e.dossierTitre || '—'}</span>
+          <button class="journal-delete" onclick="deleteJournal('${e.id}')">×</button>
+        </div>
+        <div class="journal-date">${e.date}</div>
+        <div class="journal-text">${e.texte}</div>
+      </div>`;
+  }).join('');
+}
+
+function renderJournalSelect() {
+  const sel = document.getElementById('j-dossier');
+  const actifs = dossiers.filter(d => d.statut !== 'Clôturé');
+  sel.innerHTML = '<option value="">— Choisir un dossier —</option>'
+    + actifs.map(d => `<option value="${d.id}">${d.titre}</option>`).join('');
+}
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'journal') { renderJournalList(); renderJournalSelect(); }
+  if (name === 'jalons') renderTimeline();
+  if (name === 'checkup') renderCheckup();
+  if (name === 'commandes') renderCommandes();
+}
+
+function saveDossier() {
+  const titre = document.getElementById('f-titre').value.trim();
+  if (!titre) { alert('L\'intitulé est obligatoire.'); return; }
+  const urgent = document.getElementById('f-urgent').value === '1';
+
+  if (currentId) {
+    const idx = dossiers.findIndex(d => d.id === currentId);
+    if (idx >= 0) {
+      dossiers[idx] = {
+        ...dossiers[idx],
+        titre,
+        domaine: document.getElementById('f-domaine').value,
+        priorite: document.getElementById('f-priorite').value,
+        statut: document.getElementById('f-statut').value,
+        echeance: document.getElementById('f-echeance').value,
+        urgent,
+        action: document.getElementById('f-action').value.trim(),
+        responsable: document.getElementById('f-resp').value.trim(),
+        notes: document.getElementById('f-notes').value.trim(),
+      };
+    }
+    currentId = null;
+  } else {
+    dossiers.push({
+      id: uid(), titre,
+      domaine: document.getElementById('f-domaine').value,
+      priorite: document.getElementById('f-priorite').value,
+      statut: document.getElementById('f-statut').value,
+      echeance: document.getElementById('f-echeance').value,
+      urgent,
+      action: document.getElementById('f-action').value.trim(),
+      responsable: document.getElementById('f-resp').value.trim(),
+      notes: document.getElementById('f-notes').value.trim(),
+      createdAt: new Date().toISOString(),
+    });
+  }
+  save();
+  clearForm();
+  showScreen('dashboard');
+}
+
+function clearForm() {
+  ['f-titre','f-action','f-resp','f-notes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('f-domaine').value = 'RH';
+  document.getElementById('f-priorite').value = 'operationnel';
+  document.getElementById('f-statut').value = 'En cours';
+  document.getElementById('f-echeance').value = '';
+  setUrgentBox(false);
+  document.querySelector('#screen-ajout .form-card > button').textContent = 'Enregistrer le dossier';
+}
+
+function saveJournal() {
+  const text = document.getElementById('j-texte').value.trim();
+  const dossierId = document.getElementById('j-dossier').value;
+  if (!text) { alert('Saisissez une note.'); return; }
+  const d = dossiers.find(x => x.id === dossierId);
+  const now = new Date();
+  journal.push({
+    id: uid(),
+    dossierId,
+    dossierTitre: d ? d.titre : '—',
+    texte: text,
+    date: now.toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit' }),
+  });
+  save();
+  document.getElementById('j-texte').value = '';
+  document.getElementById('j-dossier').value = '';
+  renderJournalList();
+}
+
+function deleteJournal(id) {
+  journal = journal.filter(e => e.id !== id);
+  save();
+  renderJournalList();
+}
+
+function openModal(id) {
+  const d = dossiers.find(x => x.id === id);
+  if (!d) return;
+  currentId = id;
+  const ech = echeanceLabel(d.echeance);
+  document.getElementById('modal-titre').textContent = d.titre;
+  const enjeuLabel = d.priorite === 'strategique' ? 'Stratégique' : d.priorite === 'operationnel' ? 'Opérationnel' : 'Administratif';
+  document.getElementById('modal-meta').innerHTML =
+    `<span class="tag ${d.domaine}" style="margin-right:8px">${d.domaine}</span>` +
+    `${d.statut} · ${enjeuLabel}` +
+    (d.urgent ? ` · <span style="color:var(--danger);font-weight:500">⚡ Urgent</span>` : '') +
+    (ech ? ` · <span class="${ech.cls}">${ech.text}</span>` : '');
+
+  let body = '';
+  if (d.action) body += `<div class="modal-section"><div class="modal-label">Ma prochaine action</div><div class="modal-value">${d.action}</div></div>`;
+  if (d.responsable) body += `<div class="modal-section"><div class="modal-label">Responsable</div><div class="modal-value">${d.responsable}</div></div>`;
+  if (d.notes) body += `<div class="modal-section"><div class="modal-label">Notes</div><div class="modal-value">${d.notes}</div></div>`;
+
+  const entries = journal.filter(e => e.dossierId === id);
+  if (entries.length) {
+    body += `<div class="modal-section"><div class="modal-label">Journal (${entries.length})</div>` +
+      [...entries].reverse().slice(0,3).map(e =>
+        `<div style="border-left:2px solid var(--accent);padding-left:10px;margin-bottom:8px;">
+          <div style="font-size:10px;color:var(--muted)">${e.date}</div>
+          <div style="font-size:13px;margin-top:2px">${e.texte}</div>
+        </div>`
+      ).join('') + '</div>';
+  }
+
+  document.getElementById('modal-body').innerHTML = body || '<div style="color:var(--muted);font-size:13px">Aucun détail renseigné.</div>';
+  document.getElementById('modal-backdrop').classList.add('open');
+}
+
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('modal-backdrop')) {
+    document.getElementById('modal-backdrop').classList.remove('open');
+  }
+}
+
+function editFromModal() {
+  const d = dossiers.find(x => x.id === currentId);
+  if (!d) return;
+  document.getElementById('f-titre').value = d.titre;
+  document.getElementById('f-domaine').value = d.domaine;
+  document.getElementById('f-priorite').value = d.priorite || 'operationnel';
+  document.getElementById('f-statut').value = d.statut;
+  document.getElementById('f-echeance').value = d.echeance || '';
+  document.getElementById('f-action').value = d.action || '';
+  document.getElementById('f-resp').value = d.responsable || '';
+  document.getElementById('f-notes').value = d.notes || '';
+  setUrgentBox(!!d.urgent);
+  document.querySelector('#screen-ajout .form-card > button').textContent = 'Mettre à jour';
+  closeModal();
+  showScreen('ajout');
+}
+
+function deleteFromModal() {
+  if (!confirm('Supprimer ce dossier ?')) return;
+  dossiers = dossiers.filter(d => d.id !== currentId);
+  journal = journal.filter(e => e.dossierId !== currentId);
+  save();
+  closeModal();
+  showScreen('dashboard');
+}
+
+function saveJalon() {
+  const titre = document.getElementById('jal-titre').value.trim();
+  const date = document.getElementById('jal-date').value;
+  if (!titre) { alert('L\'intitulé est obligatoire.'); return; }
+  if (!date) { alert('La date est obligatoire.'); return; }
+  jalons.push({
+    id: uid(),
+    titre,
+    date,
+    cat: document.getElementById('jal-cat').value,
+    type: document.getElementById('jal-type').value,
+  });
+  jalons.sort((a,b) => a.date.localeCompare(b.date));
+  save();
+  document.getElementById('jal-titre').value = '';
+  document.getElementById('jal-date').value = '';
+  renderTimeline();
+}
+
+function deleteJalon(id) {
+  jalons = jalons.filter(j => j.id !== id);
+  save();
+  renderTimeline();
+}
+
+function changeYear(delta) {
+  currentYear += delta;
+  renderTimeline();
+}
+
+function renderTimeline() {
+  document.getElementById('year-display').textContent = currentYear;
+  const mois = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  const now = new Date();
+  const curMonth = now.getMonth();
+  const curYear = now.getFullYear();
+
+  let html = '';
+  for (let m = 0; m < 12; m++) {
+    const monthJalons = jalons.filter(j => {
+      const d = new Date(j.date);
+      return d.getFullYear() === currentYear && d.getMonth() === m;
+    });
+    const isCurrent = (m === curMonth && currentYear === curYear);
+    const hasJalons = monthJalons.length > 0;
+    const dotClass = isCurrent ? 'current' : (hasJalons ? 'has-jalons' : '');
+    const labelClass = isCurrent ? 'current' : '';
+
+    html += `<div class="timeline-month">
+      <div class="month-header">
+        <div class="month-dot ${dotClass}"></div>
+        <span class="month-label ${labelClass}">${mois[m]}${isCurrent ? ' — maintenant' : ''}</span>
+      </div>`;
+
+    if (monthJalons.length) {
+      monthJalons.forEach(j => {
+        const d = new Date(j.date);
+        const dateStr = d.toLocaleDateString('fr-FR', { day:'numeric', month:'long' });
+        const typeLabel = j.type === 'revoir' ? 'À réétudier' : 'Échéance';
+        const typeClass = j.type || 'echeance';
+        html += `<div class="jalon-item ${typeClass}">
+          <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
+            <span class="jalon-type ${typeClass}">${typeLabel}</span>
+            <span class="jalon-cat ${j.cat}">${j.cat}</span>
+          </div>
+          <div class="jalon-content">
+            <div class="jalon-titre">${j.titre}</div>
+            <div class="jalon-date">${dateStr}</div>
+          </div>
+          <button class="jalon-delete" onclick="deleteJalon('${j.id}')">×</button>
+        </div>`;
+      });
+    }
+    html += '</div>';
+  }
+  document.getElementById('timeline-months').innerHTML = html;
+
+  // Scroll to current month on first render
+  if (currentYear === curYear) {
+    setTimeout(() => {
+      const months = document.querySelectorAll('.month-label.current');
+      if (months.length) months[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  }
+}
+
+function getNextWeekKey() {
+  const now = new Date();
+  const day = now.getDay() || 7;
+  const nextMon = new Date(now);
+  nextMon.setDate(now.getDate() + (8 - day));
+  nextMon.setHours(0,0,0,0);
+  return nextMon.toISOString().split('T')[0];
+}
+
+function getWeekDates(mondayStr) {
+  const mon = new Date(mondayStr);
+  const fri = new Date(mon); fri.setDate(mon.getDate() + 4);
+  const fmt = d => d.toLocaleDateString('fr-FR', { day:'numeric', month:'long' });
+  return `${fmt(mon)} — ${fmt(fri)}`;
+}
+
+function renderCheckup() {
+  const weekKey = getNextWeekKey();
+  document.getElementById('checkup-dates').textContent = getWeekDates(weekKey);
+
+  if (!checkupWeeks[weekKey]) checkupWeeks[weekKey] = {};
+  const weekState = checkupWeeks[weekKey];
+
+  // Active items = pool items that are selected for this week
+  const active = checkupPool.filter(p => p.active);
+  const done = active.filter(p => weekState[p.id]);
+  const pct = active.length ? Math.round(done.length / active.length * 100) : 0;
+  document.getElementById('checkup-bar').style.width = pct + '%';
+
+  // Render checklist
+  const listEl = document.getElementById('checkup-list');
+  if (!active.length) {
+    listEl.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">Sélectionnez des points ci-dessous.</div>';
+  } else {
+    listEl.innerHTML = active.map(p => {
+      const isDone = !!weekState[p.id];
+      return `<div class="checkup-item" onclick="toggleCheckup('${p.id}')">
+        <div class="checkup-check ${isDone ? 'done' : ''}"></div>
+        <span class="checkup-label ${isDone ? 'done' : ''}">${p.label}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // Render pool
+  const poolEl = document.getElementById('pool-list');
+  poolEl.innerHTML = checkupPool.map(p => `
+    <div class="checkup-toggle">
+      <div class="checkup-toggle-box ${p.active ? 'active' : ''}" onclick="togglePool('${p.id}')"></div>
+      <span style="font-size:13px;flex:1;color:var(--text)">${p.label}</span>
+      <button class="jalon-delete" onclick="removePool('${p.id}')">×</button>
+    </div>`).join('');
+}
+
+function toggleCheckup(id) {
+  const weekKey = getNextWeekKey();
+  if (!checkupWeeks[weekKey]) checkupWeeks[weekKey] = {};
+  checkupWeeks[weekKey][id] = !checkupWeeks[weekKey][id];
+  save();
+  renderCheckup();
+}
+
+function togglePool(id) {
+  const p = checkupPool.find(x => x.id === id);
+  if (p) p.active = !p.active;
+  save();
+  renderCheckup();
+}
+
+function addPoolItem() {
+  const val = document.getElementById('pool-new').value.trim();
+  if (!val) return;
+  checkupPool.push({ id: uid(), label: val, active: true });
+  save();
+  document.getElementById('pool-new').value = '';
+  renderCheckup();
+}
+
+function removePool(id) {
+  checkupPool = checkupPool.filter(p => p.id !== id);
+  save();
+  renderCheckup();
+}
+
+function toggleCollapsible(id) {
+  const body = document.getElementById(id);
+  const arrow = document.getElementById('arrow-' + id);
+  const isOpen = body.style.maxHeight !== '0px' && body.style.maxHeight !== '';
+  body.style.maxHeight = isOpen ? '0' : '600px';
+  arrow.classList.toggle('open', !isOpen);
+}
+
+function renderCommandes() {
+  // Populate dossier select
+  const sel = document.getElementById('cmd-dossier');
+  const actifs = dossiers.filter(d => d.statut !== 'Clôturé');
+  sel.innerHTML = '<option value="">— Aucun —</option>'
+    + actifs.map(d => `<option value="${d.id}">${d.titre}</option>`).join('');
+
+  // Populate agent filter from existing commandes
+  const agentSel = document.getElementById('cmd-agent-filter');
+  const currentAgent = agentSel.value;
+  const agents = [...new Set(commandes.map(c => c.agent).filter(Boolean))].sort();
+  agentSel.innerHTML = '<option value="">Tous les agents</option>'
+    + agents.map(a => `<option value="${a}" ${a === currentAgent ? 'selected' : ''}>${a}</option>`).join('');
+
+  // Update badge
+  const enCours = commandes.filter(c => c.statut !== 'fait');
+  const badge = document.getElementById('badge-commandes');
+  badge.textContent = enCours.length;
+  badge.style.display = enCours.length ? 'inline-flex' : 'none';
+
+  // Filter by status
+  let filtered;
+  if (cmdFilter === 'actives') filtered = commandes.filter(c => c.statut !== 'fait');
+  else if (cmdFilter === 'faites') filtered = commandes.filter(c => c.statut === 'fait');
+  else filtered = [...commandes];
+
+  // Filter by agent
+  const agentFilter = agentSel.value;
+  if (agentFilter) filtered = filtered.filter(c => c.agent === agentFilter);
+
+  // Sort: en-cours first, then by echeance
+  filtered.sort((a,b) => {
+    if (a.statut === 'fait' && b.statut !== 'fait') return 1;
+    if (a.statut !== 'fait' && b.statut === 'fait') return -1;
+    if (a.echeance && b.echeance) return a.echeance.localeCompare(b.echeance);
+    return 0;
+  });
+
+  const labels = { actives: 'En cours & en attente', toutes: 'Toutes les commandes', faites: 'Commandes faites' };
+  document.getElementById('cmd-filter-label').textContent = labels[cmdFilter] + (agentFilter ? ` — ${agentFilter}` : '');
+
+  const el = document.getElementById('list-commandes');
+  if (!filtered.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-icon">✓</div>Aucune commande ici.</div>';
+    return;
+  }
+
+  el.innerHTML = filtered.map(c => {
+    const ech = echeanceLabel(c.echeance);
+    const d = dossiers.find(x => x.id === c.dossierId);
+    const statutLabel = c.statut === 'fait' ? 'Fait' : c.statut === 'en-cours' ? 'En cours' : 'En attente';
+    return `<div class="cmd-card ${c.statut}" onclick="openCmdModal('${c.id}')">
+      <div class="cmd-header">
+        <span class="cmd-titre">${c.titre}</span>
+        <span class="cmd-statut ${c.statut}">${statutLabel}</span>
+      </div>
+      <div class="cmd-meta">
+        ${c.agent ? `<span class="cmd-agent">${c.agent}</span>` : ''}
+        ${ech ? `<span class="cmd-date ${ech.cls}">${ech.text}</span>` : ''}
+        ${d ? `<span class="cmd-dossier">↳ ${d.titre}</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterCommandes(f) {
+  cmdFilter = f;
+  renderCommandes();
+}
+
+function saveCommande() {
+  const titre = document.getElementById('cmd-titre').value.trim();
+  if (!titre) { alert('L\'intitulé est obligatoire.'); return; }
+
+  if (currentCmdId) {
+    const idx = commandes.findIndex(c => c.id === currentCmdId);
+    if (idx >= 0) {
+      commandes[idx] = {
+        ...commandes[idx],
+        titre,
+        agent: document.getElementById('cmd-agent').value.trim(),
+        statut: document.getElementById('cmd-statut').value,
+        date: document.getElementById('cmd-date').value,
+        echeance: document.getElementById('cmd-echeance').value,
+        dossierId: document.getElementById('cmd-dossier').value,
+      };
+    }
+    currentCmdId = null;
+    document.getElementById('cmd-submit').textContent = 'Enregistrer la commande';
+  } else {
+    commandes.push({
+      id: uid(), titre,
+      agent: document.getElementById('cmd-agent').value.trim(),
+      statut: document.getElementById('cmd-statut').value,
+      date: document.getElementById('cmd-date').value,
+      echeance: document.getElementById('cmd-echeance').value,
+      dossierId: document.getElementById('cmd-dossier').value,
+      createdAt: new Date().toISOString(),
+    });
+  }
+  save();
+  clearCmdForm();
+  renderCommandes();
+}
+
+function clearCmdForm() {
+  ['cmd-titre','cmd-agent','cmd-date','cmd-echeance'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('cmd-statut').value = 'en-cours';
+  document.getElementById('cmd-dossier').value = '';
+}
+
+function openCmdModal(id) {
+  const c = commandes.find(x => x.id === id);
+  if (!c) return;
+  currentCmdId = id;
+  const d = dossiers.find(x => x.id === c.dossierId);
+  const ech = echeanceLabel(c.echeance);
+  const statutLabel = c.statut === 'fait' ? 'Fait' : c.statut === 'en-cours' ? 'En cours' : 'En attente';
+  document.getElementById('cmd-modal-titre').textContent = c.titre;
+  document.getElementById('cmd-modal-meta').innerHTML =
+    `<span class="cmd-statut ${c.statut}" style="margin-right:8px">${statutLabel}</span>` +
+    (c.agent ? `${c.agent}` : '') +
+    (ech ? ` · <span class="${ech.cls}">${ech.text}</span>` : '');
+  let body = '';
+  if (c.date) body += `<div class="modal-section"><div class="modal-label">Commande passée le</div><div class="modal-value">${formatDate(c.date)}</div></div>`;
+  if (d) body += `<div class="modal-section"><div class="modal-label">Dossier lié</div><div class="modal-value">${d.titre}</div></div>`;
+  document.getElementById('cmd-modal-body').innerHTML = body || '';
+  document.getElementById('cmd-modal-backdrop').classList.add('open');
+}
+
+function closeCmdModal(e) {
+  if (!e || e.target === document.getElementById('cmd-modal-backdrop')) {
+    document.getElementById('cmd-modal-backdrop').classList.remove('open');
+  }
+}
+
+function markCmdDone() {
+  const idx = commandes.findIndex(c => c.id === currentCmdId);
+  if (idx >= 0) commandes[idx].statut = 'fait';
+  save();
+  closeCmdModal();
+  renderCommandes();
+}
+
+function editCmdFromModal() {
+  const c = commandes.find(x => x.id === currentCmdId);
+  if (!c) return;
+  document.getElementById('cmd-titre').value = c.titre;
+  document.getElementById('cmd-agent').value = c.agent || '';
+  document.getElementById('cmd-statut').value = c.statut;
+  document.getElementById('cmd-date').value = c.date || '';
+  document.getElementById('cmd-echeance').value = c.echeance || '';
+  document.getElementById('cmd-dossier').value = c.dossierId || '';
+  document.getElementById('cmd-submit').textContent = 'Mettre à jour';
+  closeCmdModal();
+  // Scroll to form top
+  document.getElementById('screen-commandes').scrollTop = 0;
+}
+
+function deleteCmdFromModal() {
+  if (!confirm('Supprimer cette commande ?')) return;
+  commandes = commandes.filter(c => c.id !== currentCmdId);
+  save();
+  closeCmdModal();
+  renderCommandes();
+}
+
+// Init
+const today = new Date();
+document.getElementById('date-label').textContent = today.toLocaleDateString('fr-FR', { weekday:'short', day:'numeric', month:'short' });
+
+if (!checkupPool.length) {
+  const defaultPoints = ['CODIR','Point RH','Point cab','Point finances','Hebdo SG','Point Mélanie','Points RH RCELL','Point coaching Michaël'];
+  checkupPool = defaultPoints.map(label => ({ id: uid(), label, active: false }));
+  save();
+}
+
+renderDashboard();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
