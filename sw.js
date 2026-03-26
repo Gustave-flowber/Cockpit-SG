@@ -1,4 +1,4 @@
-const CACHE = 'cockpit-v1';
+const CACHE = 'cockpit-v2';
 const ASSETS = [
   './',
   './index.html',
